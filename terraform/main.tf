@@ -12,6 +12,9 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Отримуємо поточний AWS Account ID динамічно, щоб уникнути помилок OIDC
+data "aws_caller_identity" "current" {}
+
 # --- VPC & Subnets ---
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -91,7 +94,7 @@ resource "aws_security_group" "alb_sg" {
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    ="-1"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -111,7 +114,7 @@ resource "aws_security_group" "ecs_sg" {
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    ="-1"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -131,7 +134,7 @@ resource "aws_security_group" "db_sg" {
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    ="-1"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
@@ -274,10 +277,11 @@ resource "aws_ecs_service" "main" {
   depends_on = [aws_lb_listener.http]
 }
 
+# --- OIDC & GitHub Actions IAM Role ---
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"] # thumbprint GitHub
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
 resource "aws_iam_role" "github_actions_role" {
@@ -287,11 +291,11 @@ resource "aws_iam_role" "github_actions_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
         }
+        Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
