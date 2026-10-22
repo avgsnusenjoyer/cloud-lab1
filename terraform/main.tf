@@ -300,9 +300,7 @@ resource "aws_iam_role" "github_actions_role" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:avgsnusenjoyer/cloud-lab1:*"
-            ]
+            "token.actions.githubusercontent.com:sub" = "repo:avgsnusenjoyer/cloud-lab1:*"
           }
         }
       }
