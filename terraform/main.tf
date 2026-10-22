@@ -12,7 +12,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Отримуємо поточний AWS Account ID динамічно, щоб уникнути помилок OIDC
 data "aws_caller_identity" "current" {}
 
 # --- VPC & Subnets ---
@@ -293,7 +292,7 @@ resource "aws_iam_role" "github_actions_role" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+          Federated = aws_iam_openid_connect_provider.github.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -301,7 +300,9 @@ resource "aws_iam_role" "github_actions_role" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:avgsnusenjoyer/cloud-lab1:*"
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:avgsnusenjoyer/cloud-lab1:*"
+            ]
           }
         }
       }
